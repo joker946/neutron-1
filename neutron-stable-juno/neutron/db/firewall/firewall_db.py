@@ -68,6 +68,16 @@ class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                                    nullable=True)
 
 
+class RouterFirewallBind(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+    __tablename__ = 'router_firewall_bindings'
+    router_id = sa.Column(sa.String(255),
+                          sa.ForeignKey('routers.id'),
+                          nullable=True)
+    firewall_id = sa.Column(sa.String(36),
+                            sa.ForeignKey('firewalls.id'),
+                            nullable=True)
+
+
 class FirewallPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     """Represents a Firewall Policy resource."""
     __tablename__ = 'firewall_policies'
@@ -282,6 +292,14 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    admin_state_up=fw['admin_state_up'],
                                    status=status)
             context.session.add(firewall_db)
+        with context.session.begin(subtransactions=True):
+            LOG.debug(_(firewall_db))
+            for rid in firewall['firewall']['router_ids']:
+                fwp = RouterFirewallBind(router_id=rid,
+                                         firewall_id=firewall_db.id,
+                                         tenant_id=tenant_id,
+                                         id=uuidutils.generate_uuid())
+                context.session.add(fwp)
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
