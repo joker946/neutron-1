@@ -319,6 +319,9 @@ RESOURCE_ATTRIBUTE_MAP = {
         'firewall_policy_id': {'allow_post': True, 'allow_put': True,
                                'validate': {'type:uuid_or_none': None},
                                'is_visible': True},
+        'router_ids': {'allow_post': True, 'allow_put': True,
+                       'validate': {'type:uuid_list': None},
+                       'is_visible': True},
     },
 }
 
