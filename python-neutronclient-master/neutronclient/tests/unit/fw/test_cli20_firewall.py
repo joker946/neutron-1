@@ -32,12 +32,14 @@ class CLITestV20FirewallJSON(test_cli20.CLITestV20Base):
         tenant_id = 'my-tenant'
         my_id = 'my-id'
         policy_id = 'my-policy-id'
-        args = ['--tenant-id', tenant_id, policy_id, ]
-        position_names = ['firewall_policy_id', ]
-        position_values = [policy_id, ]
+        args = [policy_id,
+                '--tenant-id', tenant_id]
+        position_names = ['firewall_policy_id']
+        position_values = [policy_id]
         self._test_create_resource(resource, cmd, name, my_id, args,
                                    position_names, position_values,
-                                   admin_state_up=True, tenant_id=tenant_id)
+                                   admin_state_up=True, tenant_id=tenant_id,
+                                   router_ids=[])
 
     def test_create_firewall_with_all_params(self):
         """firewall-create with all params set."""
@@ -48,18 +50,20 @@ class CLITestV20FirewallJSON(test_cli20.CLITestV20Base):
         policy_id = 'my-policy-id'
         tenant_id = 'my-tenant'
         my_id = 'my-id'
-        args = ['--description', description,
+        router_id = 'test_r1'
+        args = [policy_id,
+                '--description', description,
                 '--shared',
                 '--admin-state-down',
                 '--tenant-id', tenant_id,
-                policy_id]
-        position_names = ['firewall_policy_id', ]
-        position_values = [policy_id, ]
+                '--routers', router_id]
+        position_names = ['firewall_policy_id']
+        position_values = [policy_id]
         self._test_create_resource(resource, cmd, name, my_id, args,
                                    position_names, position_values,
                                    description=description,
                                    shared=True, admin_state_up=False,
-                                   tenant_id=tenant_id)
+                                   tenant_id=tenant_id, router_ids=[router_id])
 
     def test_list_firewalls(self):
         """firewall-list."""

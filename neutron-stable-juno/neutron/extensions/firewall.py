@@ -319,6 +319,9 @@ RESOURCE_ATTRIBUTE_MAP = {
         'firewall_policy_id': {'allow_post': True, 'allow_put': True,
                                'validate': {'type:uuid_or_none': None},
                                'is_visible': True},
+        'router_ids': {'allow_post': True, 'allow_put': True,
+                       'validate': {'type:uuid_list': None},
+                       'is_visible': True},
     },
 }
 
@@ -427,6 +430,18 @@ class FirewallPluginBase(service_base.ServicePluginBase):
 
     @abc.abstractmethod
     def get_firewall_rule(self, context, id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def get_current_filtered_router_ids(self, context, router_ids):
+        pass
+
+    @abc.abstractmethod
+    def get_router_ids_by_firewall_id(self, context, firewall_id):
+        pass
+
+    @abc.abstractmethod
+    def get_firewall_id_by_router_id(self, context, router_id):
         pass
 
     @abc.abstractmethod

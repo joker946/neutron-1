@@ -804,7 +804,8 @@ PLURALS = {NETWORKS: NETWORK,
            'host_routes': 'host_route',
            'allocation_pools': 'allocation_pool',
            'fixed_ips': 'fixed_ip',
-           'extensions': 'extension'}
+           'extensions': 'extension',
+           'router_ids': 'router_id'}
 EXT_NSES = {}
 
 # Namespaces to be added for backward compatibility

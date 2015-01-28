@@ -22,12 +22,20 @@ from neutronclient.i18n import _
 from neutronclient.neutron import v2_0 as neutronv20
 
 
+def _format(firewall):
+    try:
+        return '\n'.join([' '.join([s])
+                          for s in firewall['router_ids']])
+    except (TypeError, KeyError):
+        return ''
+
+
 class ListFirewall(neutronv20.ListCommand):
     """List firewalls that belong to a given tenant."""
 
     resource = 'firewall'
-    list_columns = ['id', 'name', 'firewall_policy_id']
-    _formatters = {}
+    list_columns = ['id', 'name', 'firewall_policy_id', 'router_ids']
+    _formatters = {'router_ids': _format, }
     pagination_support = True
     sorting_support = True
 
@@ -51,6 +59,9 @@ class CreateFirewall(neutronv20.CreateCommand):
             '--name',
             help=_('Name for the firewall.'))
         parser.add_argument(
+            '--routers', metavar='ROUTER',
+            help=_('Routers\' name or ID.'), nargs='*')
+        parser.add_argument(
             '--description',
             help=_('Description for the firewall rule.'))
         parser.add_argument(
@@ -68,10 +79,16 @@ class CreateFirewall(neutronv20.CreateCommand):
         _policy_id = neutronv20.find_resourceid_by_name_or_id(
             self.get_client(), 'firewall_policy',
             parsed_args.firewall_policy_id)
+        _router_ids = []
+        if parsed_args.routers:
+            for r in parsed_args.routers:
+                _router_ids.append(neutronv20.find_resourceid_by_name_or_id(
+                    self.get_client(), 'router', r))
         body = {
             self.resource: {
                 'firewall_policy_id': _policy_id,
-                'admin_state_up': parsed_args.admin_state, }, }
+                'admin_state_up': parsed_args.admin_state,
+                'router_ids': _router_ids}, }
         neutronv20.update_dict(parsed_args, body[self.resource],
                                ['name', 'description', 'shared',
                                 'tenant_id'])
@@ -87,6 +104,9 @@ class UpdateFirewall(neutronv20.UpdateCommand):
         parser.add_argument(
             '--policy', metavar='POLICY',
             help=_('Firewall policy name or ID.'))
+        parser.add_argument(
+            '--routers', metavar='ROUTER',
+            help=_('Routers\' name or ID.'), nargs='*')
 
     def args2body(self, parsed_args):
         data = {}
@@ -95,6 +115,12 @@ class UpdateFirewall(neutronv20.UpdateCommand):
                 self.get_client(), 'firewall_policy',
                 parsed_args.policy)
             data['firewall_policy_id'] = _policy_id
+        if parsed_args.routers:
+            _router_ids = []
+            for r in parsed_args.routers:
+                _router_ids.append(neutronv20.find_resourceid_by_name_or_id(
+                    self.get_client(), 'router', r))
+            data['router_ids'] = _router_ids
         return {self.resource: data}
 
 

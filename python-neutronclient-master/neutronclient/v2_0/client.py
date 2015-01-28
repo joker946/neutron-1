@@ -233,6 +233,7 @@ class Client(object):
 
     # API has no way to report plurals, so we have to hard code them
     EXTED_PLURALS = {'routers': 'router',
+                     'router_ids': 'router_id',
                      'floatingips': 'floatingip',
                      'service_types': 'service_type',
                      'service_definitions': 'service_definition',
