@@ -218,8 +218,8 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
                                                    firewall['firewall'])
         fw_count = self.get_firewalls_count(context,
                                             filters={'tenant_id': [tenant_id]})
-        if fw_count:
-            raise FirewallCountExceeded(tenant_id=tenant_id)
+        #if fw_count:
+        #    raise FirewallCountExceeded(tenant_id=tenant_id)
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
