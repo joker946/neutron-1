@@ -120,7 +120,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                   {'func_name': func_name, 'fwid': fw['id']})
         try:
             routers = self.plugin_rpc.get_routers(context, router_ids=fw['router_ids'])
-            LOG.debug(_(routers))
             router_info_list = self._get_router_info_list_for_tenant(
                 routers,
                 fw['tenant_id'])
@@ -236,7 +235,8 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         if not self.fwaas_enabled:
             return
         try:
-            self._process_router_add(ri)
+            #self._process_router_add(ri)
+            pass
         except Exception:
             LOG.exception(
                 _("FWaaS RPC info call failed for '%s'."),
