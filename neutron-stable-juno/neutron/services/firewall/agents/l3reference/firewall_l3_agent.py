@@ -119,7 +119,8 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         LOG.debug(_("%(func_name)s from agent for fw: %(fwid)s"),
                   {'func_name': func_name, 'fwid': fw['id']})
         try:
-            routers = self.plugin_rpc.get_routers(context)
+            routers = self.plugin_rpc.get_routers(context, router_ids=fw['router_ids'])
+            LOG.debug(_(routers))
             router_info_list = self._get_router_info_list_for_tenant(
                 routers,
                 fw['tenant_id'])
