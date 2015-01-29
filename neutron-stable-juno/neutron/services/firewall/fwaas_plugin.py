@@ -232,7 +232,7 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
         router_ids = firewall['firewall']['router_ids']
         for r_id in router_ids:
-            r_count = self.check_router_has_firewall(r_id)
+            r_count = self.check_router_has_firewall(context, r_id)
             if r_count:
                 raise RouterHasFirewall(router_id=r_id)
 
