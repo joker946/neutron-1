@@ -336,6 +336,13 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._get_collection_count(context, Firewall,
                                           filters=filters)
 
+    def check_router_has_firewall(self, context, router_id, filters=None):
+        LOG.debug(_("check_router_has_firewall() called"))
+        return self._get_collection_count(context, RouterFirewallBind,
+                                          filters={'router_id': [router_id]})
+
+         
+
     def create_firewall_policy(self, context, firewall_policy):
         LOG.debug(_("create_firewall_policy() called"))
         fwp = firewall_policy['firewall_policy']

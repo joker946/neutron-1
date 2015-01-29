@@ -138,6 +138,14 @@ class FirewallCountExceeded(n_exception.Conflict):
                 "%(tenant_id)s. Only one firewall is supported per tenant.")
 
 
+class RouterHasFirewall(n_exception.Conflict):
+    """Router should have only one firewall"""
+    
+    message = _("Exceeded allowed count of firewalls for router "
+                "%(router_id)s. One router supports only one firewall.")
+
+
+
 class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     """Implementation of the Neutron Firewall Service Plugin.
@@ -218,8 +226,17 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
                                                    firewall['firewall'])
         fw_count = self.get_firewalls_count(context,
                                             filters={'tenant_id': [tenant_id]})
-        #if fw_count:
+        # if fw_count:
         #    raise FirewallCountExceeded(tenant_id=tenant_id)
+        # INSERT CHECKING OF ROUTER
+
+        router_ids = firewall['firewall']['router_ids']
+        for r_id in router_ids:
+            r_count = self.check_router_has_firewall(r_id)
+            if r_count:
+                raise RouterHasFirewall(router_id=r_id)
+
+
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
