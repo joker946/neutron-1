@@ -311,20 +311,11 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
-       # LOG.debug(_("update_firewall() called"))
-       # fw = firewall['firewall']
-       # with context.session.begin(subtransactions=True):
-       #     count = context.session.query(Firewall).filter_by(id=id).update(fw)
-       #     if not count:
-       #         raise firewall.FirewallNotFound(firewall_id=id)
-       # return self.get_firewall(context, id)
 
-        LOG.debug(_("update_firewall() called"))
-        LOG.debug(_(firewall['firewall']))
-        LOG.debug(_(firewall))
         fw = firewall['firewall']
+        tenant_id = self._get_tenant_id_for_create(context, fw)
 
-        if (fw.has_key('router_ids')):
+        if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
         else:
             router_ids = None
@@ -337,15 +328,13 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         if router_ids:
             with context.session.begin(subtransactions=True):
                 # REMOVING ALL OLD ROUTERS FROM DB
-                for rid in router_ids:
-                    count = context.session.query(RouterFirewallBind).\
-                                            filtered_by(firewall_id=rid).delete()
+                count = context.session.query(RouterFirewallBind).\
+                                            filter_by(firewall_id=id).delete()
 
             with context.session.begin(subtransactions=True):
-                LOG.debug(_(fw))
                 for rid in router_ids:
                     fwp = RouterFirewallBind(router_id=rid,
-                                             firewall_id=fw.id,
+                                             firewall_id=id,
                                              tenant_id=tenant_id,
                                              id=uuidutils.generate_uuid())
                     context.session.add(fwp)

@@ -52,7 +52,7 @@ class CreateFirewall(neutronv20.CreateCommand):
             help=_('Name for the firewall.'))
         parser.add_argument(
             '--router', metavar='ROUTER',
-            help=_('Specify router id'), action='append')
+            help=_('Specify router id'), action='append', required=True)
         parser.add_argument(
             '--description',
             help=_('Description for the firewall rule.'))
