@@ -118,6 +118,14 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         except exc.NoResultFound:
             raise firewall.FirewallRuleNotFound(firewall_rule_id=id)
 
+    def _make_router_firewall_bindings_dict(self, rf, fields=None):
+        #fw_routers = [r['id'] for r in rf['router_id']]
+        res = {'id': rf['id'],
+               'tenant_id': rf['tenant_id'],
+               'firewall_id': rf['firewall_id'],
+               'router_id': rf['router_id']}
+        return self._fields(res, fields)
+
     def _make_firewall_dict(self, fw, fields=None):
         res = {'id': fw['id'],
                'tenant_id': fw['tenant_id'],
@@ -341,7 +349,10 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._get_collection_count(context, RouterFirewallBind,
                                           filters={'router_id': [router_id]})
 
-         
+    def get_routers_by_firewall_id(self, context, fid):
+        return self._get_collection(context, RouterFirewallBind,
+                                    self._make_router_firewall_bindings_dict,
+                                    filters={'firewall_id': [fid]})
 
     def create_firewall_policy(self, context, firewall_policy):
         LOG.debug(_("create_firewall_policy() called"))

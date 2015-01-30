@@ -264,8 +264,13 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         status_update = {"firewall": {"status": const.PENDING_DELETE}}
         fw = super(FirewallPlugin, self).update_firewall(context, id,
                                                          status_update)
+        router_firewall_binding_list = self.get_routers_by_firewall_id(context, id)
+        router_ids = []
+        for rfb in router_firewall_binding_list:
+            router_ids.append(rfb['router_id'])
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
+        fw['router_ids'] = router_ids
         self.agent_rpc.delete_firewall(context, fw_with_rules)
 
     def update_firewall_policy(self, context, id, firewall_policy):
