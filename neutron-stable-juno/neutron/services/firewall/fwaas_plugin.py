@@ -251,6 +251,7 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
+        fw_with_rules['router_ids'] = firewall['firewall']['router_ids']
         self.agent_rpc.update_firewall(context, fw_with_rules)
         return fw
 
