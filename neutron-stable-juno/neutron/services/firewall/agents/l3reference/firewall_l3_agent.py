@@ -125,7 +125,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         LOG.debug(_("%(func_name)s from agent for fw: %(fwid)s"),
                   {'func_name': func_name, 'fwid': fw['id']})
         try:
-            routers = self.plugin_rpc.get_routers(context, router_ids=fw['router_ids'])
+            routers = self.plugin_rpc.get_routers(
+                context,
+                router_ids=fw['router_ids'])
             router_info_list = self._get_router_info_list_for_tenant(
                 routers,
                 fw['tenant_id'])
@@ -154,6 +156,18 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                             "for fw: %(fwid)s"),
                           {'func_name': func_name, 'fwid': fw['id']})
                 status = constants.ERROR
+            #When router is updated, we need to delete rules from previous
+            #routers
+            if func_name == 'update_firewall':
+                routers_to_delete = self.plugin_rpc.get_routers(
+                    context,
+                    router_ids=fw['router_to_delete_firewall'])
+                router_info = self._get_router_info_list_for_tenant(
+                    routers_to_delete,
+                    fw['tenant_id'])
+                self.fwaas_driver.delete_firewall(self.conf.agent_mode,
+                                                  router_info,
+                                                  fw)
             # delete needs different handling
             if func_name == 'delete_firewall':
                 if status in [constants.ACTIVE, constants.DOWN]:
@@ -255,7 +269,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         if not self.fwaas_enabled:
             return
         try:
-            
+          
             # get the list of tenants with firewalls configured
             # from the plugin
             tenant_ids = self.fwplugin_rpc.get_tenants_with_firewalls(ctx)
