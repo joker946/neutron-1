@@ -314,8 +314,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
         fw = firewall['firewall']
         tenant_id = self._get_tenant_id_for_create(context, fw)
-        routers_to_delete_firewall = []
-
+        routers_to_delete_firewall=[]
         if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
         else:
@@ -328,27 +327,26 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
         if router_ids:
             with context.session.begin(subtransactions=True):
-                # GET ALL OLD ROUTERS FROM DB
-                rtdfl = context.session.query(RouterFirewallBind.router_id).\
+                rtdf = context.session.query(RouterFirewallBind.router_id).\
                                             filter_by(firewall_id=id).all()
-                # Create list of strings instead of list of tuples
-                _rtdfl = ["%s" % rid for rid in rtdfl]
-                routers_to_delete_firewall = _rtdfl
+                _rtdf = ["%s" % rid for rid in rtdf]
+                routers_to_delete_firewall = _rtdf
 
+ 
             with context.session.begin(subtransactions=True):
-                # REMOVING ALL OLD ROUTERS FROM DB
                 count = context.session.query(RouterFirewallBind).\
                                             filter_by(firewall_id=id).delete()
 
             with context.session.begin(subtransactions=True):
                 for rid in router_ids:
-                    rfwb = RouterFirewallBind(router_id=rid,
+                    fwp = RouterFirewallBind(router_id=rid,
                                              firewall_id=id,
                                              tenant_id=tenant_id,
                                              id=uuidutils.generate_uuid())
-                    context.session.add(rfwb)
+                    context.session.add(fwp)
 
         fw = self.get_firewall(context, id)
+
         if router_ids:
             fw['router_ids'] = router_ids
         if routers_to_delete_firewall:
