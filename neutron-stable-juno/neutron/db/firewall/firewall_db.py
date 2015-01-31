@@ -331,11 +331,8 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                 # GET ALL OLD ROUTERS FROM DB
                 rtdfl = context.session.query(RouterFirewallBind.router_id).\
                                             filter_by(firewall_id=id).all()
-                LOG.debug(_('----------------------'))
-                LOG.debug(_(rtdfl))
                 # Create list of strings instead of list of tuples
                 _rtdfl = ["%s" % rid for rid in rtdfl]
-                LOG.debug(_(_rtdfl))
                 routers_to_delete_firewall = _rtdfl
 
             with context.session.begin(subtransactions=True):
@@ -352,12 +349,12 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                     context.session.add(rfwb)
 
         fw = self.get_firewall(context, id)
-        
+        if router_ids:
+            fw['router_ids'] = router_ids
         if routers_to_delete_firewall:
             fw['routers_to_delete_firewall'] = routers_to_delete_firewall
 
-        return fw    
-        
+        return fw
 
     def delete_firewall(self, context, id):
         LOG.debug(_("delete_firewall() called"))
