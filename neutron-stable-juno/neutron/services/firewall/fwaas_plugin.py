@@ -92,6 +92,20 @@ class FirewallCallbacks(n_rpc.RpcCallback):
             router_ids.append(rfb['router_id'])
         return router_ids
 
+    def get_firewall_by_router_id(self, context, rid, **kwargs):
+        LOG.debug(_("get_firewall_by_router_id() called"))
+        rfb = self.plugin.get_firewall_by_router_id(
+            context,
+            rid)
+        if rfb[0]:
+            return rfb[0]
+        else:
+            return None
+
+    def get_firewall_by_id(self, context, fid, **kwargs):
+        LOG.debug(_("get_firewall_by_id() called"))
+        return self.get_firewall(context, fid)
+
     def get_firewalls_for_tenant_without_rules(self, context, **kwargs):
         """Agent uses this to get all firewalls for a tenant."""
         LOG.debug(_("get_firewalls_for_tenant_without_rules() called"))
