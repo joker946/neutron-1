@@ -314,7 +314,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
         fw = firewall['firewall']
         tenant_id = self._get_tenant_id_for_create(context, fw)
-        routers_to_delete_firewall=[]
+        routers_to_delete_firewall = []
         if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
         else:
@@ -324,18 +324,17 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             count = context.session.query(Firewall).filter_by(id=id).update(fw)
             if not count:
                 raise firewall.FirewallNotFound(firewall_id=id)
-
+        #Routers to upgrade
         if router_ids:
             with context.session.begin(subtransactions=True):
                 rtdf = context.session.query(RouterFirewallBind.router_id).\
-                                            filter_by(firewall_id=id).all()
+                    filter_by(firewall_id=id).all()
                 _rtdf = ["%s" % rid for rid in rtdf]
                 routers_to_delete_firewall = _rtdf
 
- 
             with context.session.begin(subtransactions=True):
-                count = context.session.query(RouterFirewallBind).\
-                                            filter_by(firewall_id=id).delete()
+                count = context.session.query(RouterFirewallBind).filter_by(
+                    firewall_id=id).delete()
 
             with context.session.begin(subtransactions=True):
                 for rid in router_ids:
@@ -346,9 +345,9 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                     context.session.add(fwp)
 
         fw = self.get_firewall(context, id)
-
         if router_ids:
             fw['router_ids'] = router_ids
+        #Routers to delete
         if routers_to_delete_firewall:
             fw['routers_to_delete_firewall'] = routers_to_delete_firewall
 
@@ -454,7 +453,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         self._validate_fwr_protocol_parameters(fwr)
         tenant_id = self._get_tenant_id_for_create(context, fwr)
         if not fwr['protocol'] and (fwr['source_port'] or
-                fwr['destination_port']):
+                                    fwr['destination_port']):
             raise firewall.FirewallRuleWithPortWithoutProtocolInvalid()
         src_port_min, src_port_max = self._get_min_max_ports_from_range(
             fwr['source_port'])
