@@ -437,6 +437,10 @@ class FirewallPluginBase(service_base.ServicePluginBase):
         pass
 
     @abc.abstractmethod
+    def get_firewall_by_router_id(self, context, rid):
+        pass
+        
+    @abc.abstractmethod
     def create_firewall_rule(self, context, firewall_rule):
         pass
 
