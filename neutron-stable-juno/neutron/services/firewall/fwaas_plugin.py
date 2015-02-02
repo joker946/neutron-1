@@ -81,6 +81,31 @@ class FirewallCallbacks(n_rpc.RpcCallback):
         ]
         return fw_list
 
+    def get_routers_for_firewall(self, context, **kwargs):
+        firewall_id = kwargs.get('firewall_id')
+        LOG.debug(_("get_routers_for_firewall() called"))
+        router_firewall_binding_list = self.plugin.get_routers_by_firewall_id(
+            context,
+            firewall_id)
+        router_ids = []
+        for rfb in router_firewall_binding_list:
+            router_ids.append(rfb['router_id'])
+        return router_ids
+
+    def get_firewall_by_router_id(self, context, rid, **kwargs):
+        LOG.debug(_("get_firewall_by_router_id() called"))
+        rfb = self.plugin.get_firewall_by_router_id(
+            context,
+            rid)
+        if rfb[0]:
+            return rfb[0]
+        else:
+            return None
+
+    def get_firewall_by_id(self, context, fid, **kwargs):
+        LOG.debug(_("get_firewall_by_id() called"))
+        return self.get_firewall(context, fid)
+
     def get_firewalls_for_tenant_without_rules(self, context, **kwargs):
         """Agent uses this to get all firewalls for a tenant."""
         LOG.debug(_("get_firewalls_for_tenant_without_rules() called"))
@@ -140,10 +165,9 @@ class FirewallCountExceeded(n_exception.Conflict):
 
 class RouterHasFirewall(n_exception.Conflict):
     """Router should have only one firewall"""
-    
+
     message = _("Exceeded allowed count of firewalls for router "
                 "%(router_id)s. One router supports only one firewall.")
-
 
 
 class FirewallPlugin(firewall_db.Firewall_db_mixin):
@@ -222,20 +246,12 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def create_firewall(self, context, firewall):
         LOG.debug(_("create_firewall() called"))
-        tenant_id = self._get_tenant_id_for_create(context,
-                                                   firewall['firewall'])
-        fw_count = self.get_firewalls_count(context,
-                                            filters={'tenant_id': [tenant_id]})
-        # if fw_count:
-        #    raise FirewallCountExceeded(tenant_id=tenant_id)
         # INSERT CHECKING OF ROUTER
-
         router_ids = firewall['firewall']['router_ids']
         for r_id in router_ids:
             r_count = self.check_router_has_firewall(context, r_id)
             if r_count:
                 raise RouterHasFirewall(router_id=r_id)
-
 
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
@@ -246,12 +262,25 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def update_firewall(self, context, id, firewall):
         LOG.debug(_("update_firewall() called"))
+        router_ids = firewall['firewall']['router_ids']
+        router_firewall_binding_list = self.get_routers_by_firewall_id(
+            context,
+            id)
+        routers_to_check = []
+        for rfb in router_firewall_binding_list:
+            routers_to_check.append(rfb['router_id'])
+        for r_id in router_ids:
+            r_count = self.check_router_has_firewall(context, r_id)
+            if r_count and r_id not in routers_to_check:
+                raise RouterHasFirewall(router_id=r_id)
         self._ensure_update_firewall(context, id)
         firewall['firewall']['status'] = const.PENDING_UPDATE
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = firewall['firewall']['router_ids']
+        fw_with_rules['router_ids'] = router_ids
+        fw_with_rules['routers_to_delete_firewall'] = \
+            fw['routers_to_delete_firewall']
         self.agent_rpc.update_firewall(context, fw_with_rules)
         return fw
 
@@ -265,13 +294,15 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         status_update = {"firewall": {"status": const.PENDING_DELETE}}
         fw = super(FirewallPlugin, self).update_firewall(context, id,
                                                          status_update)
-        router_firewall_binding_list = self.get_routers_by_firewall_id(context, id)
+        router_firewall_binding_list = self.get_routers_by_firewall_id(
+            context,
+            id)
         router_ids = []
         for rfb in router_firewall_binding_list:
             router_ids.append(rfb['router_id'])
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw['router_ids'] = router_ids
+        fw_with_rules['router_ids'] = router_ids
         self.agent_rpc.delete_firewall(context, fw_with_rules)
 
     def update_firewall_policy(self, context, id, firewall_policy):

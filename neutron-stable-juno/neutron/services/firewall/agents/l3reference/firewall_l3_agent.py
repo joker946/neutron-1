@@ -50,6 +50,30 @@ class FWaaSL3PluginApi(api.FWaaSPluginApiMixin):
                          self.make_msg('get_tenants_with_firewalls',
                                        host=self.host))
 
+    def get_routers_for_firewall(self, context, firewall_id, **kwargs):
+        LOG.debug(_("Retrieve Routers for requested firewall"))
+
+        return self.call(context,
+                         self.make_msg('get_routers_for_firewall',
+                                       host=self.host,
+                                       firewall_id=firewall_id))
+
+    def get_firewall_by_router_id(self, context, rid, **kwargs):
+        LOG.debug(_("Retrieve requested firewall by router id"))
+
+        return self.call(context,
+                         self.make_msg('get_firewall_by_router_id',
+                                       host=self.host,
+                                       rid=rid))
+
+    def get_firewall_by_id(self, context, fid, **kwargs):
+        LOG.debug(_("Retrieve firewall object by id"))
+
+        return self.call(context,
+                         self.make_msg('get_firewall_by_id',
+                                       host=self.host,
+                                       fid=fid))
+
 
 class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
     """FWaaS Agent support to be used by Neutron L3 agent."""
@@ -105,9 +129,15 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             # for routers without an interface - get_routers returns
             # the router - but this is not yet populated in router_info
             if rid not in self.router_info:
+                LOG.debug(_("CONTINUE"))
+                LOG.debug(_(rid))
+                LOG.debug(_(self.router_info))
                 continue
             if self.router_info[rid].use_namespaces:
                 router_ns = self.router_info[rid].ns_name
+                LOG.debug(_("LOCALNSLIST"))
+                LOG.debug(_(local_ns_list))
+                LOG.debug(_(router_ns))
                 if router_ns in local_ns_list:
                     router_info_list.append(self.router_info[rid])
             else:
@@ -119,7 +149,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         LOG.debug(_("%(func_name)s from agent for fw: %(fwid)s"),
                   {'func_name': func_name, 'fwid': fw['id']})
         try:
-            routers = self.plugin_rpc.get_routers(context, router_ids=fw['router_ids'])
+            routers = self.plugin_rpc.get_routers(
+                context,
+                router_ids=fw['router_ids'])
             router_info_list = self._get_router_info_list_for_tenant(
                 routers,
                 fw['tenant_id'])
@@ -148,6 +180,18 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                             "for fw: %(fwid)s"),
                           {'func_name': func_name, 'fwid': fw['id']})
                 status = constants.ERROR
+            #When router is updated, we need to delete rules from previous
+            #routers
+            if func_name == 'update_firewall':
+                routers_to_delete = self.plugin_rpc.get_routers(
+                    context,
+                    router_ids=fw['router_to_delete_firewall'])
+                router_info = self._get_router_info_list_for_tenant(
+                    routers_to_delete,
+                    fw['tenant_id'])
+                self.fwaas_driver.delete_firewall(self.conf.agent_mode,
+                                                  router_info,
+                                                  fw)
             # delete needs different handling
             if func_name == 'delete_firewall':
                 if status in [constants.ACTIVE, constants.DOWN]:
@@ -213,21 +257,28 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         LOG.debug(_("Process router add, router_id: '%s'"), ri.router['id'])
         routers = []
         routers.append(ri.router)
+        router_id = ri.router['id']
+        ctx = context.Context('', ri.router['tenant_id'])
+        rfb = self.fwplugin_rpc.get_firewall_by_router_id(
+            ctx,
+            router_id)
+        if not rfb:
+            return
+        firewall_id = rfb['firewall_id']
+        firewall_to_apply = self.fwplugin_rpc.get_firewall_by_id(
+            ctx,
+            firewall_id)
         router_info_list = self._get_router_info_list_for_tenant(
             routers,
             ri.router['tenant_id'])
         if router_info_list:
+            LOG.debug(_("router_info_list"))
             # Get the firewall with rules
             # for the tenant the router is on.
-            ctx = context.Context('', ri.router['tenant_id'])
-            fw_list = self.fwplugin_rpc.get_firewalls_for_tenant(ctx)
-            LOG.debug(_("Process router add, fw_list: '%s'"),
-                      [fw['id'] for fw in fw_list])
-            for fw in fw_list:
-                self._invoke_driver_for_sync_from_plugin(
-                    ctx,
-                    router_info_list,
-                    fw)
+            self._invoke_driver_for_sync_from_plugin(
+                ctx,
+                router_info_list,
+                firewall_to_apply)
 
     def process_router_add(self, ri):
         """On router add, get fw with rules from plugin and update driver."""
@@ -242,6 +293,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                 _("FWaaS RPC info call failed for '%s'."),
                 ri.router['id'])
             self.services_sync = True
+
 
     def process_services_sync(self, ctx):
         """On RPC issues sync with plugin and apply the sync data."""
