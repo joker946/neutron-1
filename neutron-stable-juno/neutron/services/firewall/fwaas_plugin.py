@@ -81,30 +81,29 @@ class FirewallCallbacks(n_rpc.RpcCallback):
         ]
         return fw_list
 
-    def get_routers_for_firewall(self, context, **kwargs):
-        firewall_id = kwargs.get('firewall_id')
+    def get_routers_for_firewall(self, context, firewall_id, **kwargs):
         LOG.debug(_("get_routers_for_firewall() called"))
+        fid = firewall_id
         router_firewall_binding_list = self.plugin.get_routers_by_firewall_id(
             context,
-            firewall_id)
+            fid)
         router_ids = []
         for rfb in router_firewall_binding_list:
             router_ids.append(rfb['router_id'])
         return router_ids
 
-    def get_firewall_by_router_id(self, context, rid, **kwargs):
-        LOG.debug(_("get_firewall_by_router_id() called"))
-        rfb = self.plugin.get_firewall_by_router_id(
-            context,
-            rid)
-        if rfb[0]:
-            return rfb[0]
-        else:
-            return None
+    def get_firewall_id_by_router_id(self, context, rid, **kwargs):
+        LOG.debug(_("get_firewall_id_by_router_id() called"))
+        return self.plugin.get_firewall_id_by_router_id(context, rid)
 
-    def get_firewall_by_id(self, context, fid, **kwargs):
-        LOG.debug(_("get_firewall_by_id() called"))
-        return self.get_firewall(context, fid)
+    def get_firewall_with_rules_by_id(self, context, fid, **kwargs):
+        LOG.debug(_("get_firewall_with_rules_by_id() called"))
+        firewall = self.plugin.get_firewall(context, fid)
+        fw_with_rules = (
+            self.plugin._make_firewall_dict_with_rules(
+                context,
+                firewall['id']))
+        return fw_with_rules
 
     def get_firewalls_for_tenant_without_rules(self, context, **kwargs):
         """Agent uses this to get all firewalls for a tenant."""
@@ -246,7 +245,8 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def create_firewall(self, context, firewall):
         LOG.debug(_("create_firewall() called"))
-        # INSERT CHECKING OF ROUTER
+        # Note: Check if any of the requested routers has already been
+        # associated with some firewall.
         router_ids = firewall['firewall']['router_ids']
         for r_id in router_ids:
             r_count = self.check_router_has_firewall(context, r_id)
@@ -256,19 +256,17 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = firewall['firewall']['router_ids']
+        fw_with_rules['router_ids'] = router_ids
         self.agent_rpc.create_firewall(context, fw_with_rules)
         return fw
 
     def update_firewall(self, context, id, firewall):
         LOG.debug(_("update_firewall() called"))
         router_ids = firewall['firewall']['router_ids']
-        router_firewall_binding_list = self.get_routers_by_firewall_id(
+        routers_to_check = []
+        routers_to_check = self.get_routers_by_firewall_id(
             context,
             id)
-        routers_to_check = []
-        for rfb in router_firewall_binding_list:
-            routers_to_check.append(rfb['router_id'])
         for r_id in router_ids:
             r_count = self.check_router_has_firewall(context, r_id)
             if r_count and r_id not in routers_to_check:
@@ -294,12 +292,7 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         status_update = {"firewall": {"status": const.PENDING_DELETE}}
         fw = super(FirewallPlugin, self).update_firewall(context, id,
                                                          status_update)
-        router_firewall_binding_list = self.get_routers_by_firewall_id(
-            context,
-            id)
-        router_ids = []
-        for rfb in router_firewall_binding_list:
-            router_ids.append(rfb['router_id'])
+        router_ids = self.get_routers_by_firewall_id(context, id)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
         fw_with_rules['router_ids'] = router_ids

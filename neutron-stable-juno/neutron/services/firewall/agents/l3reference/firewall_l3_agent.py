@@ -58,19 +58,19 @@ class FWaaSL3PluginApi(api.FWaaSPluginApiMixin):
                                        host=self.host,
                                        firewall_id=firewall_id))
 
-    def get_firewall_by_router_id(self, context, rid, **kwargs):
-        LOG.debug(_("Retrieve requested firewall by router id"))
+    def get_firewall_id_by_router_id(self, context, rid, **kwargs):
+        LOG.debug(_("Retrieve firewall id by router id"))
 
         return self.call(context,
-                         self.make_msg('get_firewall_by_router_id',
+                         self.make_msg('get_firewall_id_by_router_id',
                                        host=self.host,
                                        rid=rid))
 
-    def get_firewall_by_id(self, context, fid, **kwargs):
+    def get_firewall_with_rules_by_id(self, context, fid, **kwargs):
         LOG.debug(_("Retrieve firewall object by id"))
 
         return self.call(context,
-                         self.make_msg('get_firewall_by_id',
+                         self.make_msg('get_firewall_with_rules_by_id',
                                        host=self.host,
                                        fid=fid))
 
@@ -129,15 +129,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             # for routers without an interface - get_routers returns
             # the router - but this is not yet populated in router_info
             if rid not in self.router_info:
-                LOG.debug(_("CONTINUE"))
-                LOG.debug(_(rid))
-                LOG.debug(_(self.router_info))
                 continue
             if self.router_info[rid].use_namespaces:
                 router_ns = self.router_info[rid].ns_name
-                LOG.debug(_("LOCALNSLIST"))
-                LOG.debug(_(local_ns_list))
-                LOG.debug(_(router_ns))
                 if router_ns in local_ns_list:
                     router_info_list.append(self.router_info[rid])
             else:
@@ -259,13 +253,12 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         routers.append(ri.router)
         router_id = ri.router['id']
         ctx = context.Context('', ri.router['tenant_id'])
-        rfb = self.fwplugin_rpc.get_firewall_by_router_id(
+        firewall_id = self.fwplugin_rpc.get_firewall_id_by_router_id(
             ctx,
             router_id)
-        if not rfb:
+        if not firewall_id:
             return
-        firewall_id = rfb['firewall_id']
-        firewall_to_apply = self.fwplugin_rpc.get_firewall_by_id(
+        firewall_to_apply = self.fwplugin_rpc.get_firewall_with_rules_by_id(
             ctx,
             firewall_id)
         router_info_list = self._get_router_info_list_for_tenant(
