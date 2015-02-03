@@ -267,12 +267,23 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def update_firewall(self, context, id, firewall):
         LOG.debug(_("update_firewall() called"))
+        router_ids = firewall['firewall']['router_ids']
+        router_firewall_binding_list = self.get_routers_by_firewall_id(
+            context,
+            id)
+        routers_to_check = []
+        for rfb in router_firewall_binding_list:
+            routers_to_check.append(rfb['router_id'])
+        for r_id in router_ids:
+            r_count = self.check_router_has_firewall(context, r_id)
+            if r_count and r_id not in routers_to_check:
+                raise RouterHasFirewall(router_id=r_id)
         self._ensure_update_firewall(context, id)
         firewall['firewall']['status'] = const.PENDING_UPDATE
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = fw['router_ids']
+        fw_with_rules['router_ids'] = router_ids
         fw_with_rules['routers_to_delete_firewall'] = \
             fw['routers_to_delete_firewall']
         self.agent_rpc.update_firewall(context, fw_with_rules)
