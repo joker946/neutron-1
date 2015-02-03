@@ -22,12 +22,20 @@ from neutronclient.i18n import _
 from neutronclient.neutron import v2_0 as neutronv20
 
 
+def _format(firewall):
+    try:
+        return '\n'.join([' '.join([s])
+                          for s in firewall['router_ids']])
+    except (TypeError, KeyError):
+        return ''
+
+
 class ListFirewall(neutronv20.ListCommand):
     """List firewalls that belong to a given tenant."""
 
     resource = 'firewall'
-    list_columns = ['id', 'name', 'firewall_policy_id']
-    _formatters = {}
+    list_columns = ['id', 'name', 'firewall_policy_id', 'router_ids']
+    _formatters = {'router_ids': _format, }
     pagination_support = True
     sorting_support = True
 

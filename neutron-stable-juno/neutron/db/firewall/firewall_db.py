@@ -364,13 +364,21 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
     def get_firewall(self, context, id, fields=None):
         LOG.debug(_("get_firewall() called"))
         fw = self._get_firewall(context, id)
-        return self._make_firewall_dict(fw, fields)
+        fw_dict = self._make_firewall_dict(fw, fields)
+        rfb = self.get_routers_by_firewall_id(context, fw_dict['id'])
+        fw_dict['router_ids'] = [r['router_id'] for r in rfb]
+        return fw_dict
 
     def get_firewalls(self, context, filters=None, fields=None):
         LOG.debug(_("get_firewalls() called"))
-        return self._get_collection(context, Firewall,
+        firewalls = self._get_collection(context, Firewall,
                                     self._make_firewall_dict,
                                     filters=filters, fields=fields)
+        for f in firewalls:
+            rfb = self.get_routers_by_firewall_id(context, f['id'])
+            f['router_ids'] = [r['router_id'] for r in rfb]
+        LOG.debug(_(firewalls))
+        return firewalls
 
     def get_firewalls_count(self, context, filters=None):
         LOG.debug(_("get_firewalls_count() called"))
