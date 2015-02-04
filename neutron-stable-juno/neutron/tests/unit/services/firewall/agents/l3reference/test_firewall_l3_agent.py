@@ -281,6 +281,12 @@ class TestFwaasL3AgentRpcCallback(base.BaseTestCase):
             mock_get_firewall_with_rules_by_id.return_value = fwta
 
             self.api._process_router_add(ri)
+            mock_get_firewall_id_by_router_id.assert_called_once_with(
+                ctx,
+                fake_router['id'])
+            mock_get_firewall_with_rules_by_id.assert_called_once_with(
+                ctx,
+                fid)
             mock_get_router_info_list_for_tenant.assert_called_with(
                 routers,
                 ri.router['tenant_id'])
@@ -311,8 +317,6 @@ class TestFwaasL3AgentRpcCallback(base.BaseTestCase):
             mock.patch.object(self.api.fwaas_driver, 'delete_firewall'),
             mock.patch.object(self.api.fwplugin_rpc, 'firewall_deleted'),
             mock.patch.object(self.api.fwplugin_rpc,
-                              'get_firewalls_for_tenant'),
-            mock.patch.object(self.api.fwplugin_rpc,
                 'get_firewall_id_by_router_id'),
             mock.patch.object(self.api.fwplugin_rpc,
                 'get_firewall_with_rules_by_id'),
@@ -322,7 +326,6 @@ class TestFwaasL3AgentRpcCallback(base.BaseTestCase):
             mock_get_router_info_list_for_tenant,
             mock_driver_delete_firewall,
             mock_firewall_deleted,
-            mock_get_firewalls_for_tenant,
             mock_get_firewall_id_by_router_id,
             mock_get_firewall_with_rules_by_id,
             mock_Context):
@@ -331,15 +334,19 @@ class TestFwaasL3AgentRpcCallback(base.BaseTestCase):
             ctx = mock.sentinel.context
             mock_Context.return_value = ctx
             mock_get_router_info_list_for_tenant.return_value = routers
-            mock_get_firewalls_for_tenant.return_value = fake_firewall_list
             mock_get_firewall_id_by_router_id.return_value = fid
             mock_get_firewall_with_rules_by_id.return_value = fwta
 
             self.api._process_router_add(ri)
+            mock_get_firewall_id_by_router_id.assert_called_once_with(
+                ctx,
+                fake_router['id'])
+            mock_get_firewall_with_rules_by_id.assert_called_once_with(
+                ctx,
+                fid)
             mock_get_router_info_list_for_tenant.assert_called_with(
                 routers,
                 ri.router['tenant_id'])
-            mock_get_firewalls_for_tenant.assert_called_once_with(ctx)
             mock_driver_delete_firewall.assert_called_once_with(
                 agent_mode,
                 routers,
