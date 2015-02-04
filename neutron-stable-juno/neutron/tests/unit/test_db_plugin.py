@@ -37,6 +37,7 @@ from neutron.db import db_base_plugin_v2
 from neutron.db import models_v2
 from neutron import manager
 from neutron.openstack.common import importutils
+from neutron.openstack.common import uuidutils
 from neutron.tests import base
 from neutron.tests.unit import test_extensions
 from neutron.tests.unit import testlib_api
@@ -85,7 +86,7 @@ class NeutronDbPluginV2TestCase(testlib_api.WebTestCase,
             self._attribute_map_bk[item] = (attributes.
                                             RESOURCE_ATTRIBUTE_MAP[item].
                                             copy())
-        self._tenant_id = 'test-tenant'
+        self._tenant_id = uuidutils.generate_uuid()
 
         if not plugin:
             plugin = DB_PLUGIN_KLASS

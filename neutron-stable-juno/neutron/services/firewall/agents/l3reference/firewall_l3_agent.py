@@ -183,9 +183,10 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                 router_info = self._get_router_info_list_for_tenant(
                     routers_to_delete,
                     fw['tenant_id'])
-                self.fwaas_driver.delete_firewall(self.conf.agent_mode,
-                                                  router_info,
-                                                  fw)
+                self.fwaas_driver.__getattribute__('delete_firewall')
+                (self.conf.agent_mode,
+                 router_info,
+                 fw)
             # delete needs different handling
             if func_name == 'delete_firewall':
                 if status in [constants.ACTIVE, constants.DOWN]:
@@ -229,8 +230,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             try:
                 self.fwaas_driver.update_firewall(
                     self.conf.agent_mode,
-                    router_info_list,
-                    fw)
+                    router_info_list, fw)
                 if fw['admin_state_up']:
                     status = constants.ACTIVE
                 else:
@@ -266,8 +266,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             ri.router['tenant_id'])
         if router_info_list:
             LOG.debug(_("router_info_list"))
-            # Get the firewall with rules
-            # for the tenant the router is on.
             self._invoke_driver_for_sync_from_plugin(
                 ctx,
                 router_info_list,

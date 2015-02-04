@@ -207,11 +207,11 @@ class TestFirewallPluginBase(test_db_firewall.TestFirewallDBPlugin):
         super(TestFirewallPluginBase, self).setUp(fw_plugin=FW_PLUGIN_KLASS)
         self.callbacks = self.plugin.endpoints[0]
 
-    def test_create_second_firewall_not_permitted(self):
+    def test_create_second_firewall_permitted(self):
         with self.firewall():
             res = self._create_firewall(
                 None, 'firewall2', description='test',
-                firewall_policy_id=None, admin_state_up=True)
+                firewall_policy_id=None, admin_state_up=True, router_ids=['test'])
             self.assertEqual(res.status_int, exc.HTTPConflict.code)
 
     def test_create_firewall_admin_not_affected_by_other_tenant(self):
