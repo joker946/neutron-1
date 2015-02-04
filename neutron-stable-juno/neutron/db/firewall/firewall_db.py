@@ -329,8 +329,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             with context.session.begin(subtransactions=True):
                 rtdf = context.session.query(RouterFirewallBind.router_id).\
                     filter_by(firewall_id=id).all()
-                _rtdf = ["%s" % rid for rid in rtdf]
-                routers_to_delete_firewall = _rtdf
+                routers_to_delete_firewall = ["%s" % rid for rid in rtdf]
 
             with context.session.begin(subtransactions=True):
                 count = context.session.query(RouterFirewallBind).filter_by(
