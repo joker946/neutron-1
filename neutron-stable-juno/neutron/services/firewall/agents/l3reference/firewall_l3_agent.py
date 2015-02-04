@@ -277,8 +277,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         if not self.fwaas_enabled:
             return
         try:
-            #self._process_router_add(ri)
-            pass
+            self._process_router_add(ri)
         except Exception:
             LOG.exception(
                 _("FWaaS RPC info call failed for '%s'."),
