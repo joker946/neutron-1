@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 sftp-config.json
 .idea/
-init/
-=======
 testenv/*
 init/*
->>>>>>> Stashed changes
