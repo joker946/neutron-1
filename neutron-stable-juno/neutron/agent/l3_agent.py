@@ -1831,7 +1831,6 @@ class L3NATAgent(firewall_l3_agent.FWaaSL3AgentRpcCallback,
     def _process_router_update(self):
         for rp, update in self._queue.each_update_to_next_router():
             LOG.debug("Starting router update for %s", update.id)
-            LOG.debug(_(update))
             router = update.router
             if update.action != DELETE_ROUTER and not router:
                 try:
@@ -1871,7 +1870,6 @@ class L3NATAgent(firewall_l3_agent.FWaaSL3AgentRpcCallback,
 
     def _sync_routers_task(self, context):
         if self.services_sync:
-            LOG.debug(_("BEFORE FW SYNC"))
             super(L3NATAgent, self).process_services_sync(context)
         LOG.debug(_("Starting _sync_routers_task - fullsync:%s"),
                   self.fullsync)

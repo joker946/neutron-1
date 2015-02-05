@@ -301,7 +301,6 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             context.session.add(firewall_db)
 
         with context.session.begin(subtransactions=True):
-            LOG.debug(_(firewall_db))
             for router_id in firewall['firewall']['router_ids']:
                 fwp = RouterFirewallBind(router_id=router_id,
                                          firewall_id=firewall_db.id,
@@ -311,7 +310,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
-
+        LOG.debug(_("update_firewall() called"))
         fw = firewall['firewall']
         tenant_id = self._get_tenant_id_for_create(context, fw)
         routers_to_delete_firewall = []

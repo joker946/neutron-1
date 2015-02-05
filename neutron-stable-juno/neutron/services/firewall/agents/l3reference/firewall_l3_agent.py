@@ -265,7 +265,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             routers,
             ri.router['tenant_id'])
         if router_info_list:
-            LOG.debug(_("router_info_list"))
             self._invoke_driver_for_sync_from_plugin(
                 ctx,
                 router_info_list,
