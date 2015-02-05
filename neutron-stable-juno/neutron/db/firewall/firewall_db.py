@@ -299,10 +299,10 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    admin_state_up=fw['admin_state_up'],
                                    status=status)
             context.session.add(firewall_db)
+
         with context.session.begin(subtransactions=True):
-            LOG.debug(_(firewall_db))
-            for rid in firewall['firewall']['router_ids']:
-                fwp = RouterFirewallBind(router_id=rid,
+            for router_id in firewall['firewall']['router_ids']:
+                fwp = RouterFirewallBind(router_id=router_id,
                                          firewall_id=firewall_db.id,
                                          tenant_id=tenant_id,
                                          id=uuidutils.generate_uuid())
@@ -310,7 +310,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
-
+        LOG.debug(_("update_firewall() called"))
         fw = firewall['firewall']
         tenant_id = self._get_tenant_id_for_create(context, fw)
         routers_to_delete_firewall = []
@@ -323,21 +323,20 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             count = context.session.query(Firewall).filter_by(id=id).update(fw)
             if not count:
                 raise firewall.FirewallNotFound(firewall_id=id)
-        #Routers to upgrade
+
         if router_ids:
             with context.session.begin(subtransactions=True):
                 rtdf = context.session.query(RouterFirewallBind.router_id).\
                     filter_by(firewall_id=id).all()
-                _rtdf = ["%s" % rid for rid in rtdf]
-                routers_to_delete_firewall = _rtdf
+                routers_to_delete_firewall = ["%s" % rid for rid in rtdf]
 
             with context.session.begin(subtransactions=True):
                 count = context.session.query(RouterFirewallBind).filter_by(
                     firewall_id=id).delete()
 
             with context.session.begin(subtransactions=True):
-                for rid in router_ids:
-                    fwp = RouterFirewallBind(router_id=rid,
+                for router_id in router_ids:
+                    fwp = RouterFirewallBind(router_id=router_id,
                                              firewall_id=id,
                                              tenant_id=tenant_id,
                                              id=uuidutils.generate_uuid())

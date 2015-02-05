@@ -248,10 +248,10 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         # Note: Check if any of the requested routers has already been
         # associated with some firewall.
         router_ids = firewall['firewall']['router_ids']
-        for r_id in router_ids:
-            r_count = self.check_router_has_firewall(context, r_id)
-            if r_count:
-                raise RouterHasFirewall(router_id=r_id)
+        for router_id in router_ids:
+            router_count = self.check_router_has_firewall(context, router_id)
+            if router_count:
+                raise RouterHasFirewall(router_id=router_id)
 
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
