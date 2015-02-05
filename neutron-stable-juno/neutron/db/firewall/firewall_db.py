@@ -68,11 +68,11 @@ class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                                    nullable=True)
 
 
-class RouterFirewallBind(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class RouterFirewallBind(model_base.BASEV2):
     __tablename__ = 'router_firewall_bindings'
     router_id = sa.Column(sa.String(255),
                           sa.ForeignKey('routers.id'),
-                          nullable=True)
+                          nullable=True, primary_key=True)
     firewall_id = sa.Column(sa.String(36),
                             sa.ForeignKey('firewalls.id'),
                             nullable=True)
@@ -119,9 +119,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             raise firewall.FirewallRuleNotFound(firewall_rule_id=id)
 
     def _make_router_firewall_bindings_dict(self, rf, fields=None):
-        res = {'id': rf['id'],
-               'tenant_id': rf['tenant_id'],
-               'firewall_id': rf['firewall_id'],
+        res = {'firewall_id': rf['firewall_id'],
                'router_id': rf['router_id']}
         return self._fields(res, fields)
 
@@ -303,9 +301,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         with context.session.begin(subtransactions=True):
             for router_id in firewall['firewall']['router_ids']:
                 fwp = RouterFirewallBind(router_id=router_id,
-                                         firewall_id=firewall_db.id,
-                                         tenant_id=tenant_id,
-                                         id=uuidutils.generate_uuid())
+                                         firewall_id=firewall_db.id)
                 context.session.add(fwp)
         return self._make_firewall_dict(firewall_db)
 
@@ -337,9 +333,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
             with context.session.begin(subtransactions=True):
                 for router_id in router_ids:
                     fwp = RouterFirewallBind(router_id=router_id,
-                                             firewall_id=id,
-                                             tenant_id=tenant_id,
-                                             id=uuidutils.generate_uuid())
+                                             firewall_id=id)
                     context.session.add(fwp)
 
         fw = self.get_firewall(context, id)
