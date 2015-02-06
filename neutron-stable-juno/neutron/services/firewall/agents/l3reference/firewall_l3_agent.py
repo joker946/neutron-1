@@ -271,10 +271,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             return
         try:
             self._process_router_add(ri)
-<<<<<<< HEAD
-=======
-            pass
->>>>>>> Stavitsky/master
         except Exception:
             LOG.exception(
                 _("FWaaS RPC info call failed for '%s'."),

@@ -68,11 +68,8 @@ class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                                    nullable=True)
 
 
-<<<<<<< HEAD
-class RouterFirewallBind(model_base.BASEV2):
-=======
+
 class RouterFirewallBinding(model_base.BASEV2):
->>>>>>> Stavitsky/master
     __tablename__ = 'router_firewall_bindings'
     router_id = sa.Column(sa.String(255),
                           sa.ForeignKey('routers.id'),
@@ -306,16 +303,6 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                 firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
                                        firewall_id=firewall_db.id))
             context.session.add(firewall_db)
-<<<<<<< HEAD
-=======
-
-        with context.session.begin(subtransactions=True):
-            for router_id in firewall['firewall']['router_ids']:
-                fwp = RouterFirewallBinding(router_id=router_id,
-                                            firewall_id=firewall_db.id
-                                            )
-                context.session.add(fwp)
->>>>>>> Stavitsky/master
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
@@ -345,14 +332,9 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
             with context.session.begin(subtransactions=True):
                 for router_id in router_ids:
-<<<<<<< HEAD
-                    fwp = RouterFirewallBind(router_id=router_id,
-                                             firewall_id=id)
-=======
                     fwp = RouterFirewallBinding(router_id=router_id,
                                                 firewall_id=id,
                                                 )
->>>>>>> Stavitsky/master
                     context.session.add(fwp)
 
         fw = self.get_firewall(context, id)
