@@ -384,14 +384,8 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                           filters={'router_id': [router_id]})
 
     def get_routers_by_firewall_id(self, context, fid):
-        LOG.debug(_("get_routers_by_firewall_id() called"))
-        rfb = self._get_collection(context, RouterFirewallBinding,
-                                    self._make_router_firewall_bindings_dict,
-                                    filters={'firewall_id': [fid]})
-        router_ids = []
-        for rid in rfb:
-            router_ids.append(rid['router_id'])
-        return router_ids
+        return [router['router_id'] for router in
+            context.session.query(Firewall).filter_by(id=fid).first().rfb]
 
     def get_firewall_id_by_router_id(self, context, rid):
         LOG.debug(_("get_firewall_id_by_router_id() called"))
