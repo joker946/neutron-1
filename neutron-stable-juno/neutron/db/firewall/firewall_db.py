@@ -76,6 +76,7 @@ class RouterFirewallBind(model_base.BASEV2):
     firewall_id = sa.Column(sa.String(36),
                             sa.ForeignKey('firewalls.id'),
                             nullable=True)
+    firewall = orm.relationship('Firewall', backref='rfb')
 
 
 class FirewallPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
@@ -296,13 +297,11 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    fw['firewall_policy_id'],
                                    admin_state_up=fw['admin_state_up'],
                                    status=status)
-            context.session.add(firewall_db)
-
-        with context.session.begin(subtransactions=True):
+            firewall_db.rfb = []
             for router_id in firewall['firewall']['router_ids']:
-                fwp = RouterFirewallBind(router_id=router_id,
-                                         firewall_id=firewall_db.id)
-                context.session.add(fwp)
+                firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
+                                       firewall_id=firewall_db.id))
+            context.session.add(firewall_db)
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
