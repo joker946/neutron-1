@@ -150,6 +150,13 @@ class FirewallAgentApi(n_rpc.RpcProxy):
                           host=self.host)
         )
 
+    def cleanup_firewall(self, context, firewall):
+        return self.fanout_cast(
+            context,
+            self.make_msg('cleanup_firewall', firewall=firewall,
+                          host=self.host)
+        )
+
 
 class FirewallCountExceeded(n_exception.Conflict):
 

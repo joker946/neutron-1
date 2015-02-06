@@ -341,3 +341,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             context,
             firewall,
             'delete_firewall')
+    def cleanup_firewall(self, context, firewall, host):
+        """Handle Rpc from plugin to cleanup a firewall"""
+        return self._invoke_driver_for_plugin_api(
+            context,
+            firewall,
+            'cleanup_firewall')
