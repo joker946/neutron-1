@@ -68,7 +68,11 @@ class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                                    nullable=True)
 
 
+<<<<<<< HEAD
 class RouterFirewallBind(model_base.BASEV2):
+=======
+class RouterFirewallBinding(model_base.BASEV2):
+>>>>>>> Stavitsky/master
     __tablename__ = 'router_firewall_bindings'
     router_id = sa.Column(sa.String(255),
                           sa.ForeignKey('routers.id'),
@@ -302,6 +306,16 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                 firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
                                        firewall_id=firewall_db.id))
             context.session.add(firewall_db)
+<<<<<<< HEAD
+=======
+
+        with context.session.begin(subtransactions=True):
+            for router_id in firewall['firewall']['router_ids']:
+                fwp = RouterFirewallBinding(router_id=router_id,
+                                            firewall_id=firewall_db.id
+                                            )
+                context.session.add(fwp)
+>>>>>>> Stavitsky/master
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
@@ -321,18 +335,24 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
         if router_ids:
             with context.session.begin(subtransactions=True):
-                rtdf = context.session.query(RouterFirewallBind.router_id).\
+                rtdf = context.session.query(RouterFirewallBinding.router_id).\
                     filter_by(firewall_id=id).all()
                 routers_to_delete_firewall = ["%s" % rid for rid in rtdf]
 
             with context.session.begin(subtransactions=True):
-                count = context.session.query(RouterFirewallBind).filter_by(
+                count = context.session.query(RouterFirewallBinding).filter_by(
                     firewall_id=id).delete()
 
             with context.session.begin(subtransactions=True):
                 for router_id in router_ids:
+<<<<<<< HEAD
                     fwp = RouterFirewallBind(router_id=router_id,
                                              firewall_id=id)
+=======
+                    fwp = RouterFirewallBinding(router_id=router_id,
+                                                firewall_id=id,
+                                                )
+>>>>>>> Stavitsky/master
                     context.session.add(fwp)
 
         fw = self.get_firewall(context, id)
@@ -378,12 +398,12 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
     def check_router_has_firewall(self, context, router_id, filters=None):
         LOG.debug(_("check_router_has_firewall() called"))
-        return self._get_collection_count(context, RouterFirewallBind,
+        return self._get_collection_count(context, RouterFirewallBinding,
                                           filters={'router_id': [router_id]})
 
     def get_routers_by_firewall_id(self, context, fid):
         LOG.debug(_("get_routers_by_firewall_id() called"))
-        rfb = self._get_collection(context, RouterFirewallBind,
+        rfb = self._get_collection(context, RouterFirewallBinding,
                                     self._make_router_firewall_bindings_dict,
                                     filters={'firewall_id': [fid]})
         router_ids = []
@@ -394,7 +414,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
     def get_firewall_id_by_router_id(self, context, rid):
         LOG.debug(_("get_firewall_id_by_router_id() called"))
         try:
-            rfb = self._get_collection(context, RouterFirewallBind,
+            rfb = self._get_collection(context, RouterFirewallBinding,
                                     self._make_router_firewall_bindings_dict,
                                     filters={'router_id': [rid]})
             firewall_id = rfb[0]['firewall_id']

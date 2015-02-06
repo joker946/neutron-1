@@ -161,10 +161,16 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                       [ri.router['id'] for ri in router_info_list])
             # call into the driver
             try:
-                self.fwaas_driver.__getattribute__(func_name)(
-                    self.conf.agent_mode,
-                    router_info_list,
-                    fw)
+                if func_name == 'cleanup_firewall':
+                    self.fwaas_driver.__getattribute__('delete_firewall')
+                    (self.conf.agent_mode,
+                     router_info_list,
+                     fw)
+                else:
+                    self.fwaas_driver.__getattribute__(func_name)(
+                        self.conf.agent_mode,
+                        router_info_list,
+                        fw)
                 if fw['admin_state_up']:
                     status = constants.ACTIVE
                 else:
@@ -174,19 +180,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                             "for fw: %(fwid)s"),
                           {'func_name': func_name, 'fwid': fw['id']})
                 status = constants.ERROR
-            #When router is updated, we need to delete rules from previous
-            #routers
-            if func_name == 'update_firewall':
-                routers_to_delete = self.plugin_rpc.get_routers(
-                    context,
-                    router_ids=fw['router_to_delete_firewall'])
-                router_info = self._get_router_info_list_for_tenant(
-                    routers_to_delete,
-                    fw['tenant_id'])
-                self.fwaas_driver.__getattribute__('delete_firewall')
-                (self.conf.agent_mode,
-                 router_info,
-                 fw)
+            
             # delete needs different handling
             if func_name == 'delete_firewall':
                 if status in [constants.ACTIVE, constants.DOWN]:
@@ -277,6 +271,10 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             return
         try:
             self._process_router_add(ri)
+<<<<<<< HEAD
+=======
+            pass
+>>>>>>> Stavitsky/master
         except Exception:
             LOG.exception(
                 _("FWaaS RPC info call failed for '%s'."),
