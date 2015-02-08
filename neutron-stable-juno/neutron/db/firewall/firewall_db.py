@@ -288,7 +288,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         # the introduction of a new 'CREATED' state allows this, whilst
         # keeping a backward compatible behavior of the logical resource.
         status = (const.CREATED
-            if cfg.CONF.router_distributed else const.PENDING_CREATE)
+                  if cfg.CONF.router_distributed else const.PENDING_CREATE)
         with context.session.begin(subtransactions=True):
             firewall_db = Firewall(id=uuidutils.generate_uuid(),
                                    tenant_id=tenant_id,
@@ -300,7 +300,8 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    status=status)
             firewall_db.rfb = []
             for router_id in firewall['firewall']['router_ids']:
-                firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
+                firewall_db.rfb.append(RouterFirewallBinding(
+                                       router_id=router_id,
                                        firewall_id=firewall_db.id))
             context.session.add(firewall_db)
         return self._make_firewall_dict(firewall_db)
