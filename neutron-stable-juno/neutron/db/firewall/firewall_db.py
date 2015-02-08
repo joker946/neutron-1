@@ -294,53 +294,61 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    tenant_id=tenant_id,
                                    name=fw['name'],
                                    description=fw['description'],
-                                   firewall_policy_id=
-                                   fw['firewall_policy_id'],
+                                   firewall_policy_id=fw['firewall_policy_id'],
                                    admin_state_up=fw['admin_state_up'],
                                    status=status)
             firewall_db.rfb = []
             for router_id in firewall['firewall']['router_ids']:
-                firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
-                                       firewall_id=firewall_db.id))
+                firewall_db.rfb.append(RouterFirewallBinding(
+                                        router_id=router_id,
+                                        firewall_id=firewall_db.id))
             context.session.add(firewall_db)
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
-        LOG.debug(_("update_firewall() called"))
         fw = firewall['firewall']
         tenant_id = self._get_tenant_id_for_create(context, fw)
-        routers_to_delete_firewall = []
+        routers_to_delete_firewall=[]
         if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
         else:
             router_ids = None
 
         with context.session.begin(subtransactions=True):
-            count = context.session.query(Firewall).filter_by(id=id).update(fw)
-            if not count:
-                raise firewall.FirewallNotFound(firewall_id=id)
-
-        if router_ids:
-            with context.session.begin(subtransactions=True):
-                rtdf = context.session.query(RouterFirewallBinding.router_id).\
-                    filter_by(firewall_id=id).all()
-                routers_to_delete_firewall = ["%s" % rid for rid in rtdf]
-
-            with context.session.begin(subtransactions=True):
-                count = context.session.query(RouterFirewallBinding).filter_by(
-                    firewall_id=id).delete()
-
-            with context.session.begin(subtransactions=True):
+            deleted_rfb_count = context.session.query(RouterFirewallBinding).\
+                                            filter_by(firewall_id=id).delete()
+            firewall_db = context.session.query(Firewall).\
+                                          filter(Firewall.id == id).first()
+            if router_ids:
                 for router_id in router_ids:
-                    fwp = RouterFirewallBinding(router_id=router_id,
-                                                firewall_id=id,
-                                                )
-                    context.session.add(fwp)
+                    firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
+                                       firewall_id=firewall_db.id))
+            updated_fw_count = context.session.query(Firewall).filter_by(id=id).update(fw)
+            if not updated_fw_count:
+                raise firewall.FirewallNotFound(firewall_id=id)
+        """
+       if router_ids:
+           with context.session.begin(subtransactions=True):
+               rtdf = context.session.query(RouterFirewallBinding.router_id).\
+                                           filter_by(firewall_id=id).all()
+               _rtdf = ["%s" % rid for rid in rtdf]
+               routers_to_delete_firewall = _rtdf
 
+
+           with context.session.begin(subtransactions=True):
+               count = context.session.query(RouterFirewallBinding).\
+                                           filter_by(firewall_id=id).delete()
+
+           with context.session.begin(subtransactions=True):
+               for rid in router_ids:
+                   fwp = RouterFirewallBinding(router_id=rid,
+                                            firewall_id=id)
+                   context.session.add(fwp)
+       """
         fw = self.get_firewall(context, id)
+
         if router_ids:
             fw['router_ids'] = router_ids
-        #Routers to delete
         if routers_to_delete_firewall:
             fw['routers_to_delete_firewall'] = routers_to_delete_firewall
 
