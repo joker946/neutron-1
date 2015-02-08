@@ -32,6 +32,7 @@ from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.services.firewall import fwaas_plugin
 from neutron.tests.unit import test_db_plugin
+from neutron.tests.unit.test_l3_plugin import L3NatTestCaseBase
 
 
 DB_FW_PLUGIN_KLASS = (
@@ -889,14 +890,17 @@ class TestFirewallDBPlugin(FirewallPluginDbTestCase):
         with self.firewall_policy() as fwp:
             fwp_id = fwp['firewall_policy']['id']
             attrs['firewall_policy_id'] = fwp_id
-            with self.firewall(name=attrs['name'],
-                               firewall_policy_id=fwp_id,
-                               admin_state_up=
-                               ADMIN_STATE_UP,
-                               router_ids=[uuidutils.generate_uuid()]
-                               ) as firewall:
-                for k, v in attrs.iteritems():
-                    self.assertEqual(firewall['firewall'][k], v)
+            oyt = L3NatTestCaseBase()
+            oyt.fmt = None
+            with oyt.router() as r:
+                with self.firewall(name=attrs['name'],
+                                   firewall_policy_id=fwp_id,
+                                   admin_state_up=
+                                   ADMIN_STATE_UP,
+                                   router_ids=r['id']
+                                   ) as firewall:
+                    for k, v in attrs.iteritems():
+                        self.assertEqual(firewall['firewall'][k], v)
 
     def test_create_firewall(self):
         attrs = self._get_test_firewall_attrs("firewall1")

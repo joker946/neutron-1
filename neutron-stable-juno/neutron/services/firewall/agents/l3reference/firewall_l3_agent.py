@@ -112,6 +112,13 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                                              conf.host)
         super(FWaaSL3AgentRpcCallback, self).__init__(host=conf.host)
 
+    def _get_router_ids(self, context, router_ids):
+        LOG.debug(_("_get_router_ids() called"))
+        routers = self.plugin_rpc.get_routers(context,
+                                              router_ids=router_ids)
+        LOG.debug(_(routers))
+        return [router['id'] for router in routers]
+
     def _get_router_info_list_for_tenant(self, routers, tenant_id):
         """Returns the list of router info objects on which to apply the fw."""
         root_ip = ip_lib.IPWrapper(self.root_helper)
@@ -341,9 +348,16 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             context,
             firewall,
             'delete_firewall')
+
     def cleanup_firewall(self, context, firewall, host):
-        """Handle Rpc from plugin to cleanup a firewall"""
+        """Handle Rpc from plugin to cleanup a firewall."""
         return self._invoke_driver_for_plugin_api(
             context,
             firewall,
             'cleanup_firewall')
+
+    def get_router_ids(self, context, router_ids, host):
+        """Handle Rpc from plugin to get router ids list."""
+        return self._get_router_ids(
+            context,
+            router_ids)
