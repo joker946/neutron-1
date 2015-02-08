@@ -157,6 +157,13 @@ class FirewallAgentApi(n_rpc.RpcProxy):
                           host=self.host)
         )
 
+    def get_router_ids(self, context, router_ids):
+        return self.fanout_cast(
+            context,
+            self.make_msg('get_router_ids', router_ids=router_ids,
+                          host=self.host)
+        )
+
 
 class FirewallCountExceeded(n_exception.Conflict):
 
@@ -170,10 +177,16 @@ class FirewallCountExceeded(n_exception.Conflict):
 
 
 class RouterHasFirewall(n_exception.Conflict):
-    """Router should have only one firewall"""
+    """Router should have only one firewall."""
 
     message = _("Exceeded allowed count of firewalls for router "
                 "%(router_id)s. One router supports only one firewall.")
+
+
+class CorruptedRouterId(n_exception.Conflict):
+    """One or more requested routers have wrong id."""
+
+    message = _("One or more requested routers have wrong id.")
 
 
 class FirewallPlugin(firewall_db.Firewall_db_mixin):
@@ -255,6 +268,10 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         # Note: Check if any of the requested routers has already been
         # associated with some firewall.
         router_ids = firewall['firewall']['router_ids']
+        current_router_ids = self.agent_rpc.get_router_ids(context, router_ids)
+        LOG.debug(_(current_router_ids))
+        if set(router_ids) != set(current_router_ids):
+            raise CorruptedRouterId()
         for router_id in router_ids:
             router_count = self.check_router_has_firewall(context, router_id)
             if router_count:

@@ -288,7 +288,7 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         # the introduction of a new 'CREATED' state allows this, whilst
         # keeping a backward compatible behavior of the logical resource.
         status = (const.CREATED
-            if cfg.CONF.router_distributed else const.PENDING_CREATE)
+                  if cfg.CONF.router_distributed else const.PENDING_CREATE)
         with context.session.begin(subtransactions=True):
             firewall_db = Firewall(id=uuidutils.generate_uuid(),
                                    tenant_id=tenant_id,
@@ -307,7 +307,6 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
     def update_firewall(self, context, id, firewall):
         fw = firewall['firewall']
-        tenant_id = self._get_tenant_id_for_create(context, fw)
         routers_to_delete_firewall=[]
         if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
