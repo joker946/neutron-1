@@ -28,6 +28,7 @@ from neutron import manager
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants as const
+from neutron.db.l3_db import Router
 
 
 LOG = logging.getLogger(__name__)
@@ -55,6 +56,17 @@ class FirewallRule(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     position = sa.Column(sa.Integer)
 
 
+class RouterFirewallBinding(model_base.BASEV2):
+    __tablename__ = 'router_firewall_bindings'
+    router_id = sa.Column(sa.String(255),
+                          sa.ForeignKey('routers.id'),
+                          nullable=True, primary_key=True)
+    firewall_id = sa.Column(sa.String(36),
+                            sa.ForeignKey('firewalls.id'),
+                            nullable=True)
+    firewall = orm.relationship('Firewall', backref='rfb')
+
+
 class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     """Represents a Firewall resource."""
     __tablename__ = 'firewalls'
@@ -66,18 +78,8 @@ class Firewall(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     firewall_policy_id = sa.Column(sa.String(36),
                                    sa.ForeignKey('firewall_policies.id'),
                                    nullable=True)
-
-
-
-class RouterFirewallBinding(model_base.BASEV2):
-    __tablename__ = 'router_firewall_bindings'
-    router_id = sa.Column(sa.String(255),
-                          sa.ForeignKey('routers.id'),
-                          nullable=True, primary_key=True)
-    firewall_id = sa.Column(sa.String(36),
-                            sa.ForeignKey('firewalls.id'),
-                            nullable=True)
-    firewall = orm.relationship('Firewall', backref='rfb')
+    routers = orm.relationship(Router, secondary="router_firewall_bindings",
+                               backref='Firewall')
 
 
 class FirewallPolicy(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
@@ -297,60 +299,42 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                    firewall_policy_id=fw['firewall_policy_id'],
                                    admin_state_up=fw['admin_state_up'],
                                    status=status)
-            firewall_db.rfb = []
             for router_id in firewall['firewall']['router_ids']:
-                firewall_db.rfb.append(RouterFirewallBinding(
-                                        router_id=router_id,
-                                        firewall_id=firewall_db.id))
+                firewall_db.routers.append(
+                    context.session.query(Router).filter_by(
+                        id=router_id).first())
             context.session.add(firewall_db)
         return self._make_firewall_dict(firewall_db)
 
     def update_firewall(self, context, id, firewall):
         fw = firewall['firewall']
-        routers_to_delete_firewall=[]
+        router_ids = []
+        current_routers = self.get_routers_by_firewall_id(context, id)
         if ('router_ids' in fw.keys()):
             router_ids = fw.pop('router_ids')
         else:
             router_ids = None
-
+        if router_ids:
+            routers_to_delete = set(current_routers) - (set(current_routers)
+                                                        and set(router_ids))
         with context.session.begin(subtransactions=True):
-            deleted_rfb_count = context.session.query(RouterFirewallBinding).\
-                                            filter_by(firewall_id=id).delete()
-            firewall_db = context.session.query(Firewall).\
-                                          filter(Firewall.id == id).first()
             if router_ids:
-                for router_id in router_ids:
-                    firewall_db.rfb.append(RouterFirewallBinding(router_id=router_id,
-                                       firewall_id=firewall_db.id))
-            updated_fw_count = context.session.query(Firewall).filter_by(id=id).update(fw)
+                for r_id in routers_to_delete:
+                    context.session.query(RouterFirewallBinding).filter_by(
+                        firewall_id=id, router_id=r_id).delete()
+                firewall_db = context.session.query(Firewall).filter(
+                    Firewall.id == id).first()
+                for r_id in router_ids:
+                        firewall_db.routers.append(context.session.query(
+                            Router).filter_by(id=r_id).first())
+            updated_fw_count = context.session.query(Firewall).filter_by(
+                id=id).update(fw)
             if not updated_fw_count:
                 raise firewall.FirewallNotFound(firewall_id=id)
-        """
-       if router_ids:
-           with context.session.begin(subtransactions=True):
-               rtdf = context.session.query(RouterFirewallBinding.router_id).\
-                                           filter_by(firewall_id=id).all()
-               _rtdf = ["%s" % rid for rid in rtdf]
-               routers_to_delete_firewall = _rtdf
-
-
-           with context.session.begin(subtransactions=True):
-               count = context.session.query(RouterFirewallBinding).\
-                                           filter_by(firewall_id=id).delete()
-
-           with context.session.begin(subtransactions=True):
-               for rid in router_ids:
-                   fwp = RouterFirewallBinding(router_id=rid,
-                                            firewall_id=id)
-                   context.session.add(fwp)
-       """
         fw = self.get_firewall(context, id)
 
         if router_ids:
-            fw['router_ids'] = router_ids
-        if routers_to_delete_firewall:
-            fw['routers_to_delete_firewall'] = routers_to_delete_firewall
-
+            fw['router_ids'] = [r for r in fw['router_ids']]
         return fw
 
     def delete_firewall(self, context, id):
@@ -391,8 +375,9 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
                                           filters={'router_id': [router_id]})
 
     def get_routers_by_firewall_id(self, context, fid):
-        return [router['router_id'] for router in
-            context.session.query(Firewall).filter_by(id=fid).first().rfb]
+        firewall = context.session.query(Firewall).filter_by(
+            id=fid).first()
+        return [r['id'] for r in firewall.routers]
 
     def get_firewall_id_by_router_id(self, context, rid):
         LOG.debug(_("get_firewall_id_by_router_id() called"))

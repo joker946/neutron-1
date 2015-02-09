@@ -151,14 +151,14 @@ class FirewallAgentApi(n_rpc.RpcProxy):
         )
 
     def cleanup_firewall(self, context, firewall):
-        return self.fanout_cast(
+        return self.call(
             context,
             self.make_msg('cleanup_firewall', firewall=firewall,
                           host=self.host)
         )
 
     def get_router_ids(self, context, router_ids):
-        return self.fanout_cast(
+        return self.call(
             context,
             self.make_msg('get_router_ids', router_ids=router_ids,
                           host=self.host)
@@ -216,6 +216,7 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def _make_firewall_dict_with_rules(self, context, firewall_id):
         firewall = self.get_firewall(context, firewall_id)
+        router_ids = self.get_routers_by_firewall_id(context, firewall['id'])
         fw_policy_id = firewall['firewall_policy_id']
         if fw_policy_id:
             fw_policy = self.get_firewall_policy(context, fw_policy_id)
@@ -227,6 +228,7 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         # FIXME(Sumit): If the size of the firewall object we are creating
         # here exceeds the largest message size supported by rabbit/qpid
         # then we will have a problem.
+        firewall['router_ids'] = router_ids
         return firewall
 
     def _rpc_update_firewall(self, context, firewall_id):
@@ -280,17 +282,16 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = router_ids
         self.agent_rpc.create_firewall(context, fw_with_rules)
         return fw
 
     def update_firewall(self, context, id, firewall):
         LOG.debug(_("update_firewall() called"))
         router_ids = firewall['firewall']['router_ids']
-        routers_to_check = []
         routers_to_check = self.get_routers_by_firewall_id(
             context,
             id)
+
         for r_id in router_ids:
             r_count = self.check_router_has_firewall(context, r_id)
             if r_count and r_id not in routers_to_check:
@@ -298,13 +299,15 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         self._ensure_update_firewall(context, id)
         firewall['firewall']['status'] = const.PENDING_UPDATE
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
+        routers_to_delete = set(routers_to_check) - (set(routers_to_check) and
+                                                     set(fw['router_ids']))
+        LOG.debug(_(routers_to_delete))
+        fw['router_ids'] = routers_to_delete
+        self.agent_rpc.cleanup_firewall(context, fw)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = router_ids
-        fw_with_rules['routers_to_delete_firewall'] = \
-            fw['routers_to_delete_firewall']
         self.agent_rpc.update_firewall(context, fw_with_rules)
-        return fw
+        return fw_with_rules
 
     def delete_db_firewall_object(self, context, id):
         firewall = self.get_firewall(context, id)
@@ -316,10 +319,8 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         status_update = {"firewall": {"status": const.PENDING_DELETE}}
         fw = super(FirewallPlugin, self).update_firewall(context, id,
                                                          status_update)
-        router_ids = self.get_routers_by_firewall_id(context, id)
         fw_with_rules = (
             self._make_firewall_dict_with_rules(context, fw['id']))
-        fw_with_rules['router_ids'] = router_ids
         self.agent_rpc.delete_firewall(context, fw_with_rules)
 
     def update_firewall_policy(self, context, id, firewall_policy):

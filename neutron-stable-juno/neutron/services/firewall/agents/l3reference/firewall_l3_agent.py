@@ -169,10 +169,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             # call into the driver
             try:
                 if func_name == 'cleanup_firewall':
-                    self.fwaas_driver.__getattribute__('delete_firewall')
-                    (self.conf.agent_mode,
-                     router_info_list,
-                     fw)
+                    self.fwaas_driver.delete_firewall(self.conf.agent_mode,
+                                                      router_info_list,
+                                                      fw)
                 else:
                     self.fwaas_driver.__getattribute__(func_name)(
                         self.conf.agent_mode,
@@ -187,7 +186,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                             "for fw: %(fwid)s"),
                           {'func_name': func_name, 'fwid': fw['id']})
                 status = constants.ERROR
-            
+
             # delete needs different handling
             if func_name == 'delete_firewall':
                 if status in [constants.ACTIVE, constants.DOWN]:
