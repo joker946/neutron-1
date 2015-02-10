@@ -174,7 +174,7 @@ class RouterHasFirewall(n_exception.Conflict):
     """Router should have only one firewall."""
 
     message = _("Exceeded allowed count of firewalls for router "
-                "%(router_id)s. One router supports only one firewall.")
+                "%(router_id)s. Only one firewall is supported per router.")
 
 
 class CorruptedRouterId(n_exception.Conflict):
@@ -269,9 +269,9 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         if set(new_routers) != set(current_routers):
             raise CorruptedRouterId()
         for router_id in new_routers:
-            router_has_firewall = self.check_router_has_firewall(context,
-                                                                 router_id)
-            if router_has_firewall:
+            current_firewall = self.check_router_has_firewall(context,
+                                                              router_id)
+            if current_firewall:
                 raise RouterHasFirewall(router_id=router_id)
 
         fw = super(FirewallPlugin, self).create_firewall(context, firewall)
@@ -290,9 +290,9 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
             current_routers = self.get_router_ids_by_firewall_id(context,
                                                                  id)
             for router_id in new_routers:
-                router_has_firewall = self.check_router_has_firewall(context,
-                                                                     router_id)
-                if router_has_firewall and router_id not in current_routers:
+                current_firewall = self.check_router_has_firewall(context,
+                                                                  router_id)
+                if current_firewall and router_id not in current_routers:
                     raise RouterHasFirewall(router_id=router_id)
         self._ensure_update_firewall(context, id)
         firewall['firewall']['status'] = const.PENDING_UPDATE
