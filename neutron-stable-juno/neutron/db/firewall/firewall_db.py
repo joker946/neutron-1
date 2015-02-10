@@ -308,7 +308,6 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
 
     def update_firewall(self, context, id, firewall):
         fw = firewall['firewall']
-        new_routers = []
         if ('router_ids' in fw.keys()):
             current_routers = self.get_router_ids_by_firewall_id(context, id)
             new_routers = fw.pop('router_ids')
@@ -376,17 +375,17 @@ class Firewall_db_mixin(firewall.FirewallPluginBase, base_db.CommonDbMixin):
         return self._get_collection_count(context, RouterFirewallBinding,
                                           filters={'router_id': [router_id]})
 
-    def get_router_ids_by_firewall_id(self, context, fid):
+    def get_router_ids_by_firewall_id(self, context, firewall_id):
         firewall = context.session.query(Firewall).filter_by(
-            id=fid).first()
+            id=firewall_id).first()
         return [r['id'] for r in firewall.routers]
 
-    def get_firewall_id_by_router_id(self, context, rid):
+    def get_firewall_id_by_router_id(self, context, router_id):
         LOG.debug(_("get_firewall_id_by_router_id() called"))
         try:
             rfb = self._get_collection(context, RouterFirewallBinding,
                                     self._make_router_firewall_bindings_dict,
-                                    filters={'router_id': [rid]})
+                                    filters={'router_id': [router_id]})
             firewall_id = rfb[0]['firewall_id']
             return firewall_id
         except IndexError:

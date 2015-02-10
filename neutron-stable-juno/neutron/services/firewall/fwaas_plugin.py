@@ -282,20 +282,26 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
 
     def update_firewall(self, context, id, firewall):
         LOG.debug(_("update_firewall() called"))
-        new_routers = firewall['firewall']['router_ids']
-        current_routers = self.get_router_ids_by_firewall_id(context,
-                                                             id)
-
-        for router_id in new_routers:
-            router_has_firewall = self.check_router_has_firewall(context,
-                                                                 router_id)
-            if router_has_firewall and router_id not in current_routers:
-                raise RouterHasFirewall(router_id=router_id)
+        try:
+            new_routers = firewall['firewall']['router_ids']
+        except KeyError:
+            current_routers = None
+        else:
+            current_routers = self.get_router_ids_by_firewall_id(context,
+                                                                 id)
+            for router_id in new_routers:
+                router_has_firewall = self.check_router_has_firewall(context,
+                                                                     router_id)
+                if router_has_firewall and router_id not in current_routers:
+                    raise RouterHasFirewall(router_id=router_id)
         self._ensure_update_firewall(context, id)
         firewall['firewall']['status'] = const.PENDING_UPDATE
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
-        routers_to_delete = set(current_routers) - (set(current_routers) and
-                                                    set(fw['router_ids']))
+        if current_routers:
+            routers_to_delete = set(current_routers) -\
+                               (set(current_routers) and set(fw['router_ids']))
+        else:
+            routers_to_delete = []
         LOG.debug(_(routers_to_delete))
         fw['router_ids'] = routers_to_delete
         self.agent_rpc.cleanup_firewall(context, fw)
