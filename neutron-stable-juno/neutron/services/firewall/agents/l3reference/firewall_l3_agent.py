@@ -253,9 +253,8 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         routers.append(ri.router)
         router_id = ri.router['id']
         ctx = context.Context('', ri.router['tenant_id'])
-        firewall_id = self.fwplugin_rpc.get_firewall_id_by_router_id(
-            ctx,
-            router_id)
+        firewall_id = self.fwplugin_rpc.get_firewall_id_by_router_id(ctx,
+                                                                     router_id)
         if not firewall_id:
             return
         firewall_to_apply = self.fwplugin_rpc.get_firewall_with_rules_by_id(

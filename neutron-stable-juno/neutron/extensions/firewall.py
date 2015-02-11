@@ -433,7 +433,7 @@ class FirewallPluginBase(service_base.ServicePluginBase):
         pass
 
     @abc.abstractmethod
-    def get_routers_by_firewall_id(self, context, fid):
+    def get_router_ids_by_firewall_id(self, context, fid):
         pass
 
     @abc.abstractmethod
