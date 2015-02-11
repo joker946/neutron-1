@@ -301,7 +301,6 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
         routers_to_delete = set(routers_to_check) - (set(routers_to_check) and
                                                      set(fw['router_ids']))
-        LOG.debug(_(routers_to_delete))
         fw['router_ids'] = routers_to_delete
         self.agent_rpc.cleanup_firewall(context, fw)
         fw_with_rules = (
