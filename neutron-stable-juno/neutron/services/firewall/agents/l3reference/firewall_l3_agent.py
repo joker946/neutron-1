@@ -64,7 +64,7 @@ class FWaaSL3PluginApi(api.FWaaSPluginApiMixin):
         return self.call(context,
                          self.make_msg('get_firewall_id_by_router_id',
                                        host=self.host,
-                                       router_id=rid))
+                                       rid=rid))
 
     def get_firewall_with_rules_by_id(self, context, fid, **kwargs):
         LOG.debug(_("Retrieve firewall object by id"))
@@ -72,7 +72,7 @@ class FWaaSL3PluginApi(api.FWaaSPluginApiMixin):
         return self.call(context,
                          self.make_msg('get_firewall_with_rules_by_id',
                                        host=self.host,
-                                       firewall_id=fid))
+                                       fid=fid))
 
 
 class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
@@ -255,10 +255,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         ctx = context.Context('', ri.router['tenant_id'])
         firewall_id = self.fwplugin_rpc.get_firewall_id_by_router_id(ctx,
                                                                      router_id)
-        LOG.debug("SEE THERE")
-        LOG.debug(_(firewall_id))
         if not firewall_id:
-            LOG.debug('if not firewall_id')
             return
         firewall_to_apply = self.fwplugin_rpc.get_firewall_with_rules_by_id(
             ctx,
@@ -284,6 +281,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                 _("FWaaS RPC info call failed for '%s'."),
                 ri.router['id'])
             self.services_sync = True
+
 
     def process_services_sync(self, ctx):
         """On RPC issues sync with plugin and apply the sync data."""
@@ -355,3 +353,9 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             context,
             firewall,
             'cleanup_firewall')
+
+    def get_router_ids(self, context, router_ids, host):
+        """Handle Rpc from plugin to get router ids list."""
+        return self._get_router_ids(
+            context,
+            router_ids)
