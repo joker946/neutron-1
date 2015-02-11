@@ -151,13 +151,6 @@ class FirewallAgentApi(n_rpc.RpcProxy):
                           host=self.host)
         )
 
-    def get_router_ids(self, context, router_ids):
-        return self.call(
-            context,
-            self.make_msg('get_router_ids', router_ids=router_ids,
-                          host=self.host)
-        )
-
 
 class FirewallCountExceeded(n_exception.Conflict):
 
@@ -265,7 +258,8 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         # Note: Check if any of the requested routers has already been
         # associated with some firewall.
         new_routers = firewall['firewall']['router_ids']
-        current_routers = self.agent_rpc.get_router_ids(context, new_routers)
+        current_routers = self.get_current_filtered_router_ids(
+            context, new_routers)
         if set(new_routers) != set(current_routers):
             raise CorruptedRouterId()
         for router_id in new_routers:
@@ -298,8 +292,8 @@ class FirewallPlugin(firewall_db.Firewall_db_mixin):
         firewall['firewall']['status'] = const.PENDING_UPDATE
         fw = super(FirewallPlugin, self).update_firewall(context, id, firewall)
         if current_routers:
-            routers_to_delete = set(current_routers) -\
-                               (set(current_routers) and set(fw['router_ids']))
+            routers_to_delete = set(current_routers) - (set(current_routers) &
+                                                        set(fw['router_ids']))
         else:
             routers_to_delete = []
         LOG.debug(_(routers_to_delete))
