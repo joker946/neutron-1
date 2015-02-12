@@ -164,7 +164,7 @@ class FirewallCountExceeded(n_exception.Conflict):
 
 
 class RouterHasFirewall(n_exception.Conflict):
-    """Router should have only one firewall."""
+    """Router should has only one firewall."""
 
     message = _("Exceeded allowed count of firewalls for router "
                 "%(router_id)s. Only one firewall is supported per router.")
