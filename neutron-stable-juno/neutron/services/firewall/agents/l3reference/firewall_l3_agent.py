@@ -112,13 +112,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
                                              conf.host)
         super(FWaaSL3AgentRpcCallback, self).__init__(host=conf.host)
 
-    def _get_router_ids(self, context, router_ids):
-        LOG.debug(_("_get_router_ids() called"))
-        routers = self.plugin_rpc.get_routers(context,
-                                              router_ids=router_ids)
-        LOG.debug(_(routers))
-        return [router['id'] for router in routers]
-
     def _get_router_info_list_for_tenant(self, routers, tenant_id):
         """Returns the list of router info objects on which to apply the fw."""
         root_ip = ip_lib.IPWrapper(self.root_helper)
@@ -255,10 +248,7 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         ctx = context.Context('', ri.router['tenant_id'])
         firewall_id = self.fwplugin_rpc.get_firewall_id_by_router_id(ctx,
                                                                      router_id)
-        LOG.debug("SEE THERE")
-        LOG.debug(_(firewall_id))
         if not firewall_id:
-            LOG.debug('if not firewall_id')
             return
         firewall_to_apply = self.fwplugin_rpc.get_firewall_with_rules_by_id(
             ctx,
@@ -291,8 +281,6 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
         if not self.fwaas_enabled:
             return
         try:
-            # get all routers
-            routers = self.plugin_rpc.get_routers(ctx)
             # get the list of tenants with firewalls configured
             # from the plugin
             tenant_ids = self.fwplugin_rpc.get_tenants_with_firewalls(ctx)
@@ -300,28 +288,29 @@ class FWaaSL3AgentRpcCallback(api.FWaaSAgentRpcCallbackMixin):
             for tenant_id in tenant_ids:
                 ctx = context.Context('', tenant_id)
                 fw_list = self.fwplugin_rpc.get_firewalls_for_tenant(ctx)
+                # if fw present on tenant
                 if fw_list:
-                    # if fw present on tenant
-                    router_info_list = self._get_router_info_list_for_tenant(
-                        routers,
-                        tenant_id)
-                    if router_info_list:
-                        LOG.debug(_("Router List: '%s'"),
-                                  [ri.router['id'] for ri in router_info_list])
-                        LOG.debug(_("fw_list: '%s'"),
-                                  [fw['id'] for fw in fw_list])
-                        # apply sync data on fw for this tenant
-                        for fw in fw_list:
-                            # fw, routers present on this host for tenant
-                            # install
-                            LOG.debug(_("Apply fw on Router List: '%s'"),
-                                      [ri.router['id']
-                                          for ri in router_info_list])
-                            # no need to apply sync data for ACTIVE fw
-                            if fw['status'] != constants.ACTIVE:
+                    for fw in fw_list:
+                        # no need to apply sync data for ACTIVE fw
+                        if fw['status'] != constants.ACTIVE:
+                            info_list = self._get_router_info_list_for_tenant(
+                                [r for r in fw['router_ids']],
+                                tenant_id)
+                            if info_list:
+                                LOG.debug(_("Router List: '%s'"),
+                                          [ri.router['id'] for ri in
+                                              info_list])
+                                LOG.debug(_("fw_list: '%s'"),
+                                          [fw['id'] for fw in fw_list])
+                                # apply sync data on fw for this tenant
+                                # fw, routers present on this host for tenant
+                                # install
+                                LOG.debug(_("Apply fw on Router List: '%s'"),
+                                          [ri.router['id']
+                                              for ri in info_list])
                                 self._invoke_driver_for_sync_from_plugin(
                                     ctx,
-                                    router_info_list,
+                                    info_list,
                                     fw)
             self.services_sync = False
         except Exception:

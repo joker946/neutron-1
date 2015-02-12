@@ -115,6 +115,7 @@ class FirewallCallbacks(n_rpc.RpcCallback):
 
 
 class FirewallAgentApi(n_rpc.RpcProxy):
+
     """Plugin side of plugin to agent RPC API."""
 
     API_VERSION = '1.0'
@@ -164,13 +165,15 @@ class FirewallCountExceeded(n_exception.Conflict):
 
 
 class RouterHasFirewall(n_exception.Conflict):
-    """Router should has only one firewall."""
+
+    """Router should have only one firewall."""
 
     message = _("Exceeded allowed count of firewalls for router "
                 "%(router_id)s. Only one firewall is supported per router.")
 
 
 class CorruptedRouterId(n_exception.Conflict):
+
     """One or more requested routers have wrong id."""
 
     message = _("One or more requested routers have wrong id.")
