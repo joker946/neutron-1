@@ -32,6 +32,7 @@ from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 from neutron.services.firewall import fwaas_plugin
 from neutron.tests.unit import test_db_plugin
+from neutron.tests.unit.test_l3_plugin import L3NatTestCaseBase
 
 
 DB_FW_PLUGIN_KLASS = (
@@ -243,13 +244,15 @@ class FirewallPluginDbTestCase(test_db_plugin.NeutronDbPluginV2TestCase):
 
     def _create_firewall(self, fmt, name, description, firewall_policy_id,
                          admin_state_up=True, expected_res_status=None,
+                         router_ids=None,
                          **kwargs):
         tenant_id = kwargs.get('tenant_id', self._tenant_id)
         data = {'firewall': {'name': name,
                              'description': description,
                              'firewall_policy_id': firewall_policy_id,
                              'admin_state_up': admin_state_up,
-                             'tenant_id': tenant_id}}
+                             'tenant_id': tenant_id,
+                             'router_ids': router_ids}}
 
         firewall_req = self.new_create_request('firewalls', data, fmt)
         firewall_res = firewall_req.get_response(self.ext_api)
@@ -261,11 +264,12 @@ class FirewallPluginDbTestCase(test_db_plugin.NeutronDbPluginV2TestCase):
     @contextlib.contextmanager
     def firewall(self, fmt=None, name='firewall_1', description=DESCRIPTION,
                  firewall_policy_id=None, admin_state_up=True,
-                 do_delete=True, **kwargs):
+                 do_delete=True,router_ids=None, **kwargs):
         if not fmt:
             fmt = self.fmt
         res = self._create_firewall(fmt, name, description, firewall_policy_id,
-                                    admin_state_up, **kwargs)
+                                    admin_state_up, router_ids=router_ids,
+                                    **kwargs)
         if res.status_int >= 400:
             raise webob.exc.HTTPClientError(code=res.status_int)
         firewall = self.deserialize(fmt or self.fmt, res)
@@ -886,12 +890,17 @@ class TestFirewallDBPlugin(FirewallPluginDbTestCase):
         with self.firewall_policy() as fwp:
             fwp_id = fwp['firewall_policy']['id']
             attrs['firewall_policy_id'] = fwp_id
-            with self.firewall(name=attrs['name'],
-                               firewall_policy_id=fwp_id,
-                               admin_state_up=
-                               ADMIN_STATE_UP) as firewall:
-                for k, v in attrs.iteritems():
-                    self.assertEqual(firewall['firewall'][k], v)
+            oyt = L3NatTestCaseBase()
+            oyt.fmt = None
+            with oyt.router() as r:
+                with self.firewall(name=attrs['name'],
+                                   firewall_policy_id=fwp_id,
+                                   admin_state_up=
+                                   ADMIN_STATE_UP,
+                                   router_ids=r['id']
+                                   ) as firewall:
+                    for k, v in attrs.iteritems():
+                        self.assertEqual(firewall['firewall'][k], v)
 
     def test_create_firewall(self):
         attrs = self._get_test_firewall_attrs("firewall1")

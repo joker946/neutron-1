@@ -1,0 +1,9 @@
+<<<<<<< HEAD
+init/
+testenv/
+=======
+sftp-config.json
+.idea/
+testenv/*
+init/*
+>>>>>>> origin/our_changes
